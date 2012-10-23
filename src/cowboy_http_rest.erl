@@ -660,6 +660,8 @@ post_is_create(Req, State) ->
 %% (including the leading /).
 create_path(Req=#http_req{meta=Meta}, State) ->
 	case call(Req, State, create_path) of
+		no_call ->
+			put_resource(Req, State, fun created_path/2);
 		{halt, Req2, HandlerState} ->
 			terminate(Req2, State#state{handler_state=HandlerState});
 		{Path, Req2, HandlerState} ->
@@ -668,6 +670,23 @@ create_path(Req=#http_req{meta=Meta}, State) ->
 			{ok, Req3} = cowboy_http_req:set_resp_header(
 				<<"Location">>, Location, Req2),
 			put_resource(Req3#http_req{meta=[{put_path, Path}|Meta]},
+				State2, 303)
+	end.
+
+%% Called after content_types_accepted is called for POST methods
+%% when create_path did not exist. Expects the full path to
+%% be returned and MUST exist in the case that create_path
+%% does not.
+created_path(Req=#http_req{meta=Meta}, State) ->
+	case call(Req, State, created_path) of
+		{halt, Req2, HandlerState} ->
+			terminate(Req2, State#state{handler_state=HandlerState});
+		{Path, Req2, HandlerState} ->
+			Location = create_path_location(Req2, Path),
+			State2 = State#state{handler_state=HandlerState},
+			{ok, Req3} = cowboy_http_req:set_resp_header(
+				<<"Location">>, Location, Req2),
+			respond(Req3#http_req{meta=[{put_path, Path}|Meta]},
 				State2, 303)
 	end.
 

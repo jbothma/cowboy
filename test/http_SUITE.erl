@@ -48,6 +48,7 @@
 -export([onresponse_crash/1]).
 -export([onresponse_reply/1]).
 -export([pipeline/1]).
+-export([rest_created_path/1]).
 -export([rest_keepalive/1]).
 -export([rest_keepalive_post/1]).
 -export([rest_nodelete/1]).
@@ -93,6 +94,7 @@ groups() ->
 		nc_rand,
 		nc_zero,
 		pipeline,
+		rest_created_path,
 		rest_keepalive,
 		rest_keepalive_post,
 		rest_nodelete,
@@ -257,6 +259,7 @@ init_dispatch(Config) ->
 			{[<<"forbidden_post">>], rest_forbidden_resource, [true]},
 			{[<<"simple_post">>], rest_forbidden_resource, [false]},
 			{[<<"nodelete">>], rest_nodelete_resource, []},
+			{[<<"created_path">>], rest_created_path_resource, []},
 			{[<<"resetags">>], rest_resource_etags, []},
 			{[<<"loop_timeout">>], http_handler_loop_timeout, []},
 			{[], http_handler, []}
@@ -654,6 +657,18 @@ pipeline(Config) ->
 	{ok, 200, _, Client10} = cowboy_client:response(Client9),
 	{ok, 200, _, Client11} = cowboy_client:response(Client10),
 	{error, closed} = cowboy_client:response(Client11).
+
+rest_created_path(Config) ->
+	Headers = [{<<"content-type">>, <<"text/plain">>}],
+	Body = <<"Whatever">>,
+	Client = ?config(client, Config),
+	URL = build_url("/created_path", Config),
+	{ok, Client2} = cowboy_client:request(<<"POST">>, URL, Headers,
+		Body, Client),
+	{ok, 303, ResHeaders, _} = cowboy_client:response(Client2),
+	{<<"location">>, _Location} =
+		lists:keyfind(<<"location">>, 1, ResHeaders),
+	ok.
 
 rest_keepalive(Config) ->
 	Client = ?config(client, Config),
