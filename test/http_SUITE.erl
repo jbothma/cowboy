@@ -210,6 +210,7 @@ init_dispatch(Config) ->
 			{"/rest_expires", rest_expires, []},
 			{"/rest_expires_binary", rest_expires_binary, []},
 			{"/rest_empty_resource", rest_empty_resource, []},
+			{"/rest_incomplete", rest_incomplete_resource, []},
 			{"/loop_stream_recv", http_loop_stream_recv, []},
 			{"/", http_handler, []}
 		]}
@@ -775,6 +776,12 @@ rest_options_default(Config) ->
 	{response, fin, 200, Headers} = gun:await(ConnPid, Ref),
 	{_, <<"HEAD, GET, OPTIONS">>} = lists:keyfind(<<"allow">>, 1, Headers),
 	ok.
+
+rest_incomplete(Config) ->
+	ConnPid = gun_open(Config),
+	Ref1 = gun:get(ConnPid, "/rest_incomplete"),
+	{response, nofin, 202, _} = gun:await(ConnPid, Ref1),
+	{ok, <<"42%">>} = gun:await_body(ConnPid, Ref1).
 
 rest_patch(Config) ->
 	Tests = [

@@ -872,7 +872,10 @@ set_resp_body(Req, State=#state{content_type_a={_, Callback}}) ->
 	end.
 
 multiple_choices(Req, State) ->
-	expect(Req, State, multiple_choices, false, 200, 300).
+    expect(Req, State, multiple_choices, false, fun is_complete/2, 300).
+
+is_complete(Req, State) ->
+    expect(Req, State, is_complete, true, 200, 202).
 
 %% Response utility functions.
 
