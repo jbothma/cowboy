@@ -778,10 +778,19 @@ rest_options_default(Config) ->
 	ok.
 
 rest_incomplete(Config) ->
+application:load(eper),
+ct:pal("~p~n", [redbug:start("rest_incomplete_resource -> return", [{msgs, 1000}, {time, 100000}])]),
 	ConnPid = gun_open(Config),
-	Ref1 = gun:get(ConnPid, "/rest_incomplete"),
+	Ref1 = gun:post(ConnPid,
+                        "/rest_incomplete",
+                        [{<<"content-type">>, <<"text/plain">>},
+                         {<<"accept">>, <<"text/plain">>}],
+                        []),
 	{response, nofin, 202, _} = gun:await(ConnPid, Ref1),
-	{ok, <<"42%">>} = gun:await_body(ConnPid, Ref1).
+	{ok, <<"42%">>} = gun:await_body(ConnPid, Ref1),
+	Ref2 = gun:get(ConnPid, "/rest_incomplete"),
+	{response, nofin, 202, _} = gun:await(ConnPid, Ref2),
+	{ok, <<"42%">>} = gun:await_body(ConnPid, Ref2).
 
 rest_patch(Config) ->
 	Tests = [

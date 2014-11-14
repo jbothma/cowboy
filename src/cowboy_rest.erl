@@ -787,8 +787,8 @@ process_content_type(Req, State=#state{method=Method, exists=Exists}, Fun) ->
 			Req3 = cowboy_req:set_resp_header(
 				<<"location">>, ResURL, Req2),
 			if
-				Exists -> respond(Req3, State2, 303);
-				true -> respond(Req3, State2, 201)
+				Exists -> expect(Req3, State2, is_complete, true, 303, 202);
+				true -> expect(Req3, State2, is_complete, true, 201, 202)
 			end
 	end catch Class:Reason = {case_clause, no_call} ->
 		error_terminate(Req, State, Class, Reason, Fun)
@@ -802,14 +802,14 @@ maybe_created(Req, State=#state{method= <<"PUT">>}) ->
 	respond(Req, State, 201);
 maybe_created(Req, State) ->
 	case cowboy_req:has_resp_header(<<"location">>, Req) of
-		true -> respond(Req, State, 201);
+		true -> expect(Req, State, is_complete, true, 201, 202);
 		false -> has_resp_body(Req, State)
 	end.
 
 has_resp_body(Req, State) ->
 	case cowboy_req:has_resp_body(Req) of
 		true -> multiple_choices(Req, State);
-		false -> respond(Req, State, 204)
+		false -> expect(Req, State, is_complete, true, 204, 202)
 	end.
 
 %% Set the Etag header if any for the response provided.
