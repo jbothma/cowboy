@@ -29,9 +29,13 @@ from_text_plain(Req0, State) ->
           end,
     {true, Req, State}.
 
-get_text_plain(Req, State) ->
-    %% GET response body set like this
-	{<<"43%">>, Req, State}.
+get_text_plain(Req0, State) ->
+    case cowboy_req:method(Req0) of
+        {Method, Req1} when Method =:= <<"GET">> ->
+            {<<"43%">>, Req1, State};
+        {_, Req1} ->
+            {<<>>, Req1, State}
+    end.
 
 is_complete(Req, State) ->
 	{false, Req, State}.
