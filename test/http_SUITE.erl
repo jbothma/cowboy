@@ -778,8 +778,8 @@ rest_options_default(Config) ->
 	ok.
 
 rest_incomplete(Config) ->
-application:load(eper),
-ct:pal("~p~n", [redbug:start("rest_incomplete_resource -> return", [{msgs, 1000}, {time, 100000}])]),
+%% application:load(eper),
+%% ct:pal("~p~n", [redbug:start("cowboy_rest -> return", [{msgs, 1000}, {time, 100000}])]),
 	ConnPid = gun_open(Config),
 	Ref1 = gun:post(ConnPid,
                         "/rest_incomplete",
@@ -788,9 +788,20 @@ ct:pal("~p~n", [redbug:start("rest_incomplete_resource -> return", [{msgs, 1000}
                         []),
 	{response, nofin, 202, _} = gun:await(ConnPid, Ref1),
 	{ok, <<"42%">>} = gun:await_body(ConnPid, Ref1),
-	Ref2 = gun:get(ConnPid, "/rest_incomplete"),
+%timer:sleep(2000),
+%% redbug:stop(),
+	Ref2 = gun:post(ConnPid,
+                        "/rest_incomplete",
+                        [{<<"content-type">>, <<"text/plain">>},
+                         {<<"accept">>, <<"text/plain">>}],
+                        []),
 	{response, nofin, 202, _} = gun:await(ConnPid, Ref2),
-	{ok, <<"42%">>} = gun:await_body(ConnPid, Ref2).
+	{ok, <<"42%">>} = gun:await_body(ConnPid, Ref2),
+	Ref3 = gun:head(ConnPid, "/rest_incomplete"),
+	{response, fin, 202, _} = gun:await(ConnPid, Ref3),
+	Ref4 = gun:get(ConnPid, "/rest_incomplete"),
+	{response, nofin, 202, _} = gun:await(ConnPid, Ref4),
+	{ok, <<"43%">>} = gun:await_body(ConnPid, Ref4).
 
 rest_patch(Config) ->
 	Tests = [
