@@ -777,19 +777,23 @@ rest_options_default(Config) ->
 	{_, <<"HEAD, GET, OPTIONS">>} = lists:keyfind(<<"allow">>, 1, Headers),
 	ok.
 
-rest_incomplete(Config) ->
 %% application:load(eper),
 %% ct:pal("~p~n", [redbug:start("cowboy_rest -> return", [{msgs, 1000}, {time, 100000}])]),
+%timer:sleep(2000),
+%% redbug:stop(),
+rest_incomplete(Config) ->
 	ConnPid = gun_open(Config),
-	Ref1 = gun:post(ConnPid,
+
+    %% PUT and expect a body
+	Ref1 = gun:put(ConnPid,
                         "/rest_incomplete",
                         [{<<"content-type">>, <<"text/plain">>},
                          {<<"accept">>, <<"text/plain">>}],
                         []),
 	{response, nofin, 202, _} = gun:await(ConnPid, Ref1),
 	{ok, <<"42%">>} = gun:await_body(ConnPid, Ref1),
-%timer:sleep(2000),
-%% redbug:stop(),
+
+    %% POST and expect a body
 	Ref2 = gun:post(ConnPid,
                         "/rest_incomplete",
                         [{<<"content-type">>, <<"text/plain">>},
@@ -797,11 +801,30 @@ rest_incomplete(Config) ->
                         []),
 	{response, nofin, 202, _} = gun:await(ConnPid, Ref2),
 	{ok, <<"42%">>} = gun:await_body(ConnPid, Ref2),
-	Ref3 = gun:head(ConnPid, "/rest_incomplete"),
-	{response, fin, 202, _} = gun:await(ConnPid, Ref3),
-	Ref4 = gun:get(ConnPid, "/rest_incomplete"),
-	{response, nofin, 202, _} = gun:await(ConnPid, Ref4),
-	{ok, <<"43%">>} = gun:await_body(ConnPid, Ref4).
+
+    %% POST and expect a location and body
+	Ref3 = gun:post(ConnPid,
+                        "/rest_incomplete",
+                        [{<<"content-type">>, <<"text/plain">>},
+                         {<<"accept">>, <<"text/plain">>}],
+                        <<"give_created_location">>),
+	{response, nofin, 202, Heads} = gun:await(ConnPid, Ref3),
+	{ok, <<"42%">>} = gun:await_body(ConnPid, Ref3),
+        {_, <<"/rest_incomplete/newthing">>} = lists:keyfind(<<"location">>, 1, Heads),
+
+    %% HEAD expect no body
+	Ref4 = gun:head(ConnPid, "/rest_incomplete"),
+	{response, fin, 202, _} = gun:await(ConnPid, Ref4),
+
+    %% GET expect a body
+	Ref5 = gun:get(ConnPid, "/rest_incomplete"),
+	{response, nofin, 202, _} = gun:await(ConnPid, Ref5),
+	{ok, <<"43%">>} = gun:await_body(ConnPid, Ref5),
+
+    %% GET expect no body
+	Ref6 = gun:get(ConnPid, "/rest_incomplete?empty_response=true"),
+	{response, fin, 202, _} = gun:await(ConnPid, Ref6).
+
 
 rest_patch(Config) ->
 	Tests = [

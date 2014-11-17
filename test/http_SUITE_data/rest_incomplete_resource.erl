@@ -21,18 +21,28 @@ content_types_provided(Req, State) ->
 
 from_text_plain(Req0, State) ->
     %% POST response body is set like this
-    Req = case cowboy_req:method(Req0) of
-              {Method, Req1} when Method =:= <<"PUT">>;
-                                  Method =:= <<"POST">> ->
-                  cowboy_req:set_resp_body(<<"42%">>, Req1);
-              {_, Req1} -> Req1
-          end,
-    {true, Req, State}.
+    Req2 = case cowboy_req:method(Req0) of
+               {Method, Req1} when Method =:= <<"PUT">>;
+                                   Method =:= <<"POST">> ->
+                   cowboy_req:set_resp_body(<<"42%">>, Req1);
+               {_, Req1} -> Req1
+           end,
+    case cowboy_req:body(Req2) of
+        {ok, <<"give_created_location">>, Req3} ->
+            {{true, <<"/rest_incomplete/newthing">>}, Req3, State};
+        {ok, <<>>, Req3} ->
+            {true, Req3, State}
+    end.
 
 get_text_plain(Req0, State) ->
     case cowboy_req:method(Req0) of
         {Method, Req1} when Method =:= <<"GET">> ->
-            {<<"43%">>, Req1, State};
+            case cowboy_req:qs_val(<<"empty_response">>, Req1) of
+                {<<"true">>, Req2} ->
+                    {<<>>, Req2, State};
+                {_, Req2} ->
+                    {<<"43%">>, Req2, State}
+            end;
         {_, Req1} ->
             {<<>>, Req1, State}
     end.
